@@ -5,6 +5,7 @@ import { cn } from '@/lib/utils';
 import { headers } from 'next/headers';
 import { auth } from '@/features/auth/server';
 import { ThemeProvider } from '@/components/providers/theme-provider';
+import { Toaster } from '@/components/ui/sonner';
 
 const jetbrainsMono = JetBrains_Mono({ subsets: ['latin'], variable: '--font-mono' });
 const playfairDisplayHeading = Playfair_Display({ subsets: ['latin'], variable: '--font-heading' });
@@ -53,6 +54,7 @@ export default async function RootLayout({
           enableSystem
           disableTransitionOnChange
         >
+          <Toaster />
           {children}
         </ThemeProvider>
       </body>
