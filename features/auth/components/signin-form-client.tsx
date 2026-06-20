@@ -14,6 +14,7 @@ import { FaGithub, FaGoogle } from 'react-icons/fa';
 import { Loader2 } from 'lucide-react';
 import { authClient } from '../client';
 import { DEFAULT_LOGIN_REDIRECT } from '@/route';
+import Image from 'next/image';
 
 const SignInFormClient = () => {
   const [activeLoading, setActiveLoading] = useState<'google' | 'github' | null>(null);
@@ -37,13 +38,21 @@ const SignInFormClient = () => {
 
       <Card className="relative w-full border-neutral-900/60 bg-neutral-950/80 backdrop-blur-xl rounded-2xl p-3 shadow-2xl">
         <CardHeader className="space-y-2 pt-6 pb-4">
-          <div className="mx-auto flex h-10 w-10 items-center justify-center rounded-xl bg-linear-to-br from-neutral-900 to-neutral-800 border border-neutral-800 text-sky-400 font-bold text-lg shadow-inner">
-            ⚡
+          <div className="mx-auto flex h-10 w-10 items-center justify-center rounded-xl bg-neutral-100 dark:bg-linear-to-br dark:from-neutral-900 dark:to-neutral-800 border border-neutral-200 dark:border-neutral-800 text-sky-500 dark:text-sky-400 font-bold text-lg shadow-sm dark:shadow-inner">
+            <Image
+              src="/logo.svg"
+              alt="InTabIDE Brand Identification Logo"
+              width={30}
+              height={30}
+              priority
+            />
           </div>
-          <CardTitle className="text-2xl font-extrabold text-center tracking-tight bg-linear-to-b from-white to-neutral-400 bg-clip-text text-transparent">
+
+          <CardTitle className="text-2xl font-extrabold text-center tracking-tight bg-clip-text text-transparent bg-linear-to-b from-neutral-900 to-neutral-600 dark:from-white dark:to-neutral-400">
             Welcome to Intabide
           </CardTitle>
-          <CardDescription className="text-center text-xs text-neutral-500 tracking-wide">
+
+          <CardDescription className="text-center text-xs text-neutral-500 dark:text-neutral-400 tracking-wide font-medium">
             Authenticate to sync your isolated VFS core cloud nodes
           </CardDescription>
         </CardHeader>

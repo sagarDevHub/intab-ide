@@ -2,11 +2,12 @@ import type { Metadata } from 'next';
 import { Geist, Geist_Mono, Noto_Sans, Playfair_Display, JetBrains_Mono } from 'next/font/google';
 import './globals.css';
 import { cn } from '@/lib/utils';
+import { headers } from 'next/headers';
+import { auth } from '@/features/auth/server';
+import { ThemeProvider } from '@/components/providers/theme-provider';
 
 const jetbrainsMono = JetBrains_Mono({ subsets: ['latin'], variable: '--font-mono' });
-
 const playfairDisplayHeading = Playfair_Display({ subsets: ['latin'], variable: '--font-heading' });
-
 const notoSans = Noto_Sans({ subsets: ['latin'], variable: '--font-sans' });
 
 const geistSans = Geist({
@@ -29,8 +30,14 @@ export default async function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  // ✅ Correct Better Auth server-side session fetch pattern
+  const sessionData = await auth.api.getSession({
+    headers: await headers(),
+  });
+
   return (
     <html
+      suppressHydrationWarning
       lang="en"
       className={cn(
         notoSans.variable,
@@ -39,7 +46,16 @@ export default async function RootLayout({
         jetbrainsMono.variable
       )}
     >
-      <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>{children}</body>
+      <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
+        <ThemeProvider
+          attribute="class"
+          defaultTheme="system"
+          enableSystem
+          disableTransitionOnChange
+        >
+          {children}
+        </ThemeProvider>
+      </body>
     </html>
   );
 }
