@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import { NextRequest } from 'next/server';
 import { getSessionCookie } from 'better-auth/cookies';
 import { apiAuthPrefix, authRoutes, DEFAULT_LOGIN_REDIRECT, publicRoutes } from './route';
-import { redis } from './lib/redis/rate-limit';
+import { rateLimiter, redis } from './lib/redis/rate-limit';
 
 const BANNED_BOT_SIGNATURE = [
   'headlesschromewp',
@@ -24,9 +24,23 @@ export async function middleware(req: NextRequest) {
   const isApiAuthRoute = nextUrl.pathname.startsWith(apiAuthPrefix);
   const isAuthRoute = authRoutes.includes(nextUrl.pathname);
 
+  // SECURITY LAYER
   if (isApiAuthRoute || nextUrl.pathname.startsWith('/api')) {
-    await redis.set(`blocklist:${clientIndentifier}`, 'true', { ex: 86400 });
-    return new NextResponse('Automated script traffic blocked', { status: 403 });
+    if (BANNED_BOT_SIGNATURE.some(bot => userAgent.includes(bot))) {
+      await redis.set(`blocklist:${clientIndentifier}`, 'true', { ex: 86400 });
+      return new NextResponse('Automated script traffic blocked', { status: 403 });
+    }
+
+    const isGloballyBlocked = await redis.get(`blocklist:${clientIndentifier}`);
+    if (isGloballyBlocked) {
+      return new NextResponse('IP node flagged ror bot activity.', { status: 403 });
+    }
+
+    const { success } = await rateLimiter.limit(clientIndentifier);
+    if (!success) {
+      await redis.set(`blocklist:${clientIndentifier}`, 'true', { ex: 300 });
+      return new NextResponse('Too many Requests. Slow down!', { status: 429 });
+    }
   }
 
   if (isApiAuthRoute) return NextResponse.next();
