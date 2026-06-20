@@ -1,11 +1,5 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Get a free hosted Postgres database in seconds: `npx create-db`
-
 generator client {
-  provider = "prisma-client"
-  output   = "../lib/generated/prisma"
+  provider = "prisma-client-js"
 }
 
 datasource db {
@@ -13,10 +7,87 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+enum UserRole {
+  ADMIN
+  USER
+  PREMIUM_USER
+}
+
 model User {
-  id        String   @id @map("_id")
-  name      String
-  email     String
+  id            String  @id @map("_id") @db.String
+  name          String
+  email         String  @unique
+  emailVerified Boolean @default(false)
+  image         String?
+
+  role UserRole @default(USER)
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  sessions Session[]
+  accounts Account[]
+
+  @@map("user")
+}
+
+model Session {
+  id String @id @map("_id") @db.String
+
+  expiresAt DateTime
+  token     String   @unique
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  ipAddress String?
+  userAgent String?
+
+  userId String @db.String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("session")
+}
+
+model Account {
+  id String @id @map("_id") @db.String
+
+  accountId  String
+  providerId String
+
+  userId String @db.String
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  accessToken  String?
+  refreshToken String?
+  idToken      String?
+
+  accessTokenExpiresAt  DateTime?
+  refreshTokenExpiresAt DateTime?
+
+  scope    String?
+  password String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId])
+  @@map("account")
+}
+
+model Verification {
+  id String @id @map("_id") @db.String
+
+  identifier String
+  value      String
+
+  expiresAt DateTime
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([identifier])
+  @@map("verification")
 }
