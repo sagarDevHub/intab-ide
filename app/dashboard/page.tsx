@@ -1,4 +1,9 @@
-import { getAllPlaygroundForUser } from '@/features/dashboard/actions';
+import {
+  deleteProjectById,
+  duplicateProjectById,
+  editProjectById,
+  getAllPlaygroundForUser,
+} from '@/features/dashboard/actions';
 import AddNewButton from '@/features/dashboard/components/add-new-button';
 import AddRepoButton from '@/features/dashboard/components/add-repo-button';
 import ProjectTable from '@/features/dashboard/components/project-table';
@@ -42,10 +47,12 @@ const DashboardMainPage = async () => {
           <EmptyState />
         ) : (
           <ProjectTable
+            // @ts-expect-error: ignore
+            // TODO: need to update the types of the playground
             projects={playgrounds || []}
-            onDeleteProject={async () => {}}
-            onUpdateProject={async () => {}}
-            onDuplicateProject={async () => {}}
+            onDeleteProject={deleteProjectById}
+            onUpdateProject={editProjectById}
+            onDuplicateProject={duplicateProjectById}
           />
         )}
       </div>
