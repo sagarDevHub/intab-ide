@@ -1,11 +1,11 @@
-import { Button } from '@/components/ui/button';
+import UserButton from '@/features/auth/components/user-button';
 import React from 'react';
 
 const Home = () => {
   return (
-    <div>
-      <Button>click me</Button>
-      <h1 className="text-red-400">hello</h1>
+    <div className="">
+      <h1 className="text-4xl font-bold text-rose-500">Home</h1>
+      <UserButton />
     </div>
   );
 };
