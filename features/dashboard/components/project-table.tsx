@@ -81,6 +81,9 @@ const ProjectTable = ({
   const handleEditClick = async (project: Project) => {};
   const copyProjectUrl = async (projectId: string) => {};
   const handleDeleteClick = async (project: Project) => {};
+
+  const handleUpdateProject = async () => {};
+  const handleDeleteProject = async () => {};
   return (
     <>
       <div className="border rounded-lg overflow-hidden">
@@ -110,7 +113,7 @@ const ProjectTable = ({
                     {project.template}
                   </Badge>
                 </TableCell>
-                <TableCell>{format(new Date(project.createdAt), 'MMM D, yyyy')}</TableCell>
+                <TableCell>{format(new Date(project.createdAt), 'MMM d, yyyy')}</TableCell>
                 <TableCell>
                   <div className="flex items-center gap-2">
                     <div className="w-8 h-8 rounded-full overflow-hidden">
