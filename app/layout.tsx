@@ -31,7 +31,6 @@ export default async function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  // ✅ Correct Better Auth server-side session fetch pattern
   const sessionData = await auth.api.getSession({
     headers: await headers(),
   });

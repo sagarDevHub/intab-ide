@@ -27,12 +27,12 @@ export default async function DashboardLayout({ children }: { children: React.Re
   return (
     <TooltipProvider delayDuration={0}>
       <SidebarProvider>
-        <div className="relative flex min-h-screen w-full overflow-x-hidden bg-neutral-50 dark:bg-[#060606] text-neutral-900 dark:text-white transition-colors duration-300">
+        <div className="relative flex h-screen max-h-screen w-full overflow-hidden bg-neutral-50 dark:bg-[#060606] text-neutral-900 dark:text-white transition-colors duration-300">
           <div className="absolute inset-0 bg-[linear-gradient(to_right,#e5e5e5_1px,transparent_1px),linear-gradient(to_bottom,#e5e5e5_1px,transparent_1px)] dark:bg-[linear-gradient(to_right,#141414_1px,transparent_1px),linear-gradient(to_bottom,#141414_1px,transparent_1px)] bg-size-[4rem_4rem] mask-[radial-gradient(ellipse_60%_50%_at_50%_0%,#000_70%,transparent_100%)] pointer-events-none z-0" />
 
           <DashboardSidebar initialPlaygroundData={formattedPlaygroundData} />
 
-          <main className="flex-1 relative z-10 w-full overflow-y-auto">{children}</main>
+          <main className="flex-1 relative z-10 w-full h-full overflow-hidden">{children}</main>
         </div>
       </SidebarProvider>
     </TooltipProvider>
