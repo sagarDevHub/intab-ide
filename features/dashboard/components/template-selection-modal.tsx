@@ -146,7 +146,7 @@ const TemplateSelectionModal = ({ isOpen, onClose, onSubmit }: TemplateSelection
         if (!open) handleResetModal();
       }}
     >
-      <DialogContent className="sm:max-w-[850px] p-0 overflow-hidden bg-white dark:bg-neutral-950 border border-neutral-200 dark:border-neutral-800/80 rounded-2xl shadow-2xl">
+      <DialogContent className="sm:max-w-212.5 p-0 overflow-hidden bg-white dark:bg-neutral-950 border border-neutral-200 dark:border-neutral-800/80 rounded-2xl shadow-2xl">
         {step === 'select' ? (
           <>
             {/* Header Block */}
@@ -206,7 +206,7 @@ const TemplateSelectionModal = ({ isOpen, onClose, onSubmit }: TemplateSelection
                       onClick={() => setSelectedTemplate(template.id)}
                       className={`group p-5 flex flex-col justify-between border rounded-xl cursor-pointer bg-white dark:bg-neutral-900/40 transition-all duration-200 backdrop-blur-sm shadow-sm select-none ${
                         isSelected
-                          ? 'border-sky-500 dark:border-sky-500 bg-sky-500/[0.01] ring-1 ring-sky-500 shadow-md shadow-sky-500/5'
+                          ? 'border-sky-500 dark:border-sky-500 bg-sky-500/1 ring-1 ring-sky-500 shadow-md shadow-sky-500/5'
                           : 'border-neutral-200 dark:border-neutral-800/80 hover:bg-neutral-50/50 dark:hover:bg-neutral-900/60 hover:scale-[1.005]'
                       } ${template.glowColor}`}
                     >
@@ -235,7 +235,7 @@ const TemplateSelectionModal = ({ isOpen, onClose, onSubmit }: TemplateSelection
                         <h3 className="font-bold text-base text-neutral-900 dark:text-neutral-50">
                           {template.name}
                         </h3>
-                        <p className="text-xs text-neutral-500 dark:text-neutral-400 mt-1.5 leading-relaxed font-normal min-h-[36px]">
+                        <p className="text-xs text-neutral-500 dark:text-neutral-400 mt-1.5 leading-relaxed font-normal min-h-9">
                           {template.description}
                         </p>
                       </div>

@@ -2,7 +2,8 @@ import { NextResponse } from 'next/server';
 import { NextRequest } from 'next/server';
 import { getSessionCookie } from 'better-auth/cookies';
 import { apiAuthPrefix, authRoutes, DEFAULT_LOGIN_REDIRECT, publicRoutes } from './route';
-import { rateLimiter, redis } from './lib/redis/rate-limit';
+import { rateLimiter } from './lib/redis/rate-limit';
+import { redis } from './lib/redis/redis';
 
 const BANNED_BOT_SIGNATURE = [
   'headlesschromewp',

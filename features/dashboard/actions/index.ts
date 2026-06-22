@@ -2,6 +2,7 @@
 
 import { auth } from '@/features/auth/server';
 import { db } from '@/lib/db';
+import { redis } from '@/lib/redis/redis';
 import { Templates } from '@prisma/client';
 import { revalidatePath } from 'next/cache';
 import { headers } from 'next/headers';
@@ -16,6 +17,8 @@ async function getAuthenticatedUser() {
   }
   return user;
 }
+
+const getCacheKey = (userId: string) => `User:${userId}:playground`;
 
 export const createPlayground = async (data: {
   title: string;
@@ -34,6 +37,8 @@ export const createPlayground = async (data: {
       },
     });
 
+    await redis.del(getCacheKey(user.id));
+
     revalidatePath('/dashboard');
     return { success: true, data: playground };
   } catch (error) {
@@ -45,6 +50,13 @@ export const createPlayground = async (data: {
 export const getAllPlaygroundForUser = async () => {
   try {
     const user = await getAuthenticatedUser();
+    const cacheKey = getCacheKey(user.id);
+
+    const cachedPlaygrounds = await redis.get(cacheKey);
+
+    if (cachedPlaygrounds) {
+      return cachedPlaygrounds as any;
+    }
 
     const playgrounds = await db.playground.findMany({
       where: {
@@ -66,6 +78,10 @@ export const getAllPlaygroundForUser = async () => {
       },
     });
 
+    if (playgrounds) {
+      await redis.set(cacheKey, playgrounds, { ex: 1800 });
+    }
+
     return playgrounds;
   } catch (error) {
     console.error('Error fetching playgrounds:', error);
@@ -83,6 +99,7 @@ export const deleteProjectById = async (id: string) => {
         userId: user.id,
       },
     });
+    await redis.del(getCacheKey(user.id));
 
     revalidatePath('/dashboard');
     return { success: true };
@@ -106,6 +123,8 @@ export const editProjectById = async (id: string, data: { title: string; descrip
         description: data.description,
       },
     });
+
+    await redis.del(getCacheKey(user.id));
 
     revalidatePath('/dashboard');
     revalidatePath(`/playground/${id}`);
@@ -140,6 +159,8 @@ export const duplicateProjectById = async (id: string) => {
         userId: user.id,
       },
     });
+
+    await redis.del(getCacheKey(user.id));
 
     revalidatePath('/dashboard');
     return { success: true, data: duplicatedPlayground };
