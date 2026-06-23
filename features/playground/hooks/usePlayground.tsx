@@ -27,6 +27,7 @@ interface UsePlaygroundReturn {
     newExt?: string
   ) => Promise<void>;
   deleteNodeItem: (targetPath: string, isFolder: boolean) => Promise<void>;
+  updateActiveFileContent: (targetPath: string, newContent: string) => void;
 }
 
 // --- Recursive Pure Array Utility Mutators ---
@@ -128,6 +129,37 @@ const deleteItemFromTree = (
         }
         return item;
       }),
+  };
+};
+
+const updateFileContentInTree = (
+  folder: TemplateFolder,
+  currentPath: string,
+  targetPath: string,
+  newContent: string
+): TemplateFolder => {
+  return {
+    ...folder,
+    items: folder.items.map(item => {
+      const itemIsFolder = isFolderNode(item);
+      const itemPath =
+        currentPath === 'Root'
+          ? itemIsFolder
+            ? item.folderName
+            : `${item.filename}.${item.fileExtension}`
+          : itemIsFolder
+            ? `${currentPath}/${item.folderName}`
+            : `${currentPath}/${item.filename}.${item.fileExtension}`;
+
+      if (itemPath === targetPath && !itemIsFolder) {
+        return { ...item, content: newContent };
+      }
+
+      if (itemIsFolder && (targetPath === itemPath || targetPath.startsWith(itemPath + '/'))) {
+        return updateFileContentInTree(item, itemPath, targetPath, newContent);
+      }
+      return item;
+    }),
   };
 };
 
@@ -243,6 +275,15 @@ export const usePlayground = (id: string): UsePlaygroundReturn => {
     [templateData, saveTemplateData]
   );
 
+  const updateActiveFileContent = useCallback(
+    (targetPath: string, newContent: string) => {
+      if (!templateData) return;
+      const updated = updateFileContentInTree(templateData, 'Root', targetPath, newContent);
+      setTemplateData(updated);
+    },
+    [templateData]
+  );
+
   useEffect(() => {
     loadPlayground();
   }, [loadPlayground]);
@@ -258,5 +299,6 @@ export const usePlayground = (id: string): UsePlaygroundReturn => {
     addNewFolder,
     renameNodeItem,
     deleteNodeItem,
+    updateActiveFileContent,
   };
 };

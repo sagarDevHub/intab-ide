@@ -201,20 +201,26 @@ const TemplateNode = ({
           />
         )}
         <div className="flex flex-col gap-0.5 mt-0.5">
-          {folder.items.map((child, idx) => (
-            <TemplateNode
-              key={`${child.filename || (child as TemplateFolder).folderName}-${idx}`}
-              item={child}
-              level={level + 1}
-              currentPath={itemPath}
-              onFileSelect={onFileSelect}
-              selectedFile={selectedFile}
-              onAddFile={onAddFile}
-              onAddFolder={onAddFolder}
-              onRename={onRename}
-              onDelete={onDelete}
-            />
-          ))}
+          {folder.items.map((child, idx) => {
+            // ✅ FIX: Determine child item path title string dynamically to prevent property undefined crashes
+            const childKey =
+              'folderName' in child ? child.folderName : `${child.filename}.${child.fileExtension}`;
+
+            return (
+              <TemplateNode
+                key={`${childKey}-${idx}`}
+                item={child}
+                level={level + 1}
+                currentPath={itemPath}
+                onFileSelect={onFileSelect}
+                selectedFile={selectedFile}
+                onAddFile={onAddFile}
+                onAddFolder={onAddFolder}
+                onRename={onRename}
+                onDelete={onDelete}
+              />
+            );
+          })}
         </div>
       </CollapsibleContent>
     </Collapsible>

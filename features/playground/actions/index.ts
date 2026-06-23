@@ -31,12 +31,13 @@ async function getAuthenticatedUser() {
   return user;
 }
 
-const getCacheKey = (playgroundId: string) => `User:${playgroundId}:playground`;
+const getPlaygroundCacheKey = (id: string) => `playground:meta:${id}`;
+const getVfsTreeCacheKey = (id: string) => `playground:vfs:${id}`;
 
 export const getPlaygroundById = async (id: string): Promise<DynamicPlaygroundPayload | null> => {
   try {
     await getAuthenticatedUser();
-    const cacheKey = getCacheKey(id);
+    const cacheKey = getPlaygroundCacheKey(id);
 
     const cachedPlayground = await redis.get<DynamicPlaygroundPayload>(cacheKey);
 
@@ -46,6 +47,7 @@ export const getPlaygroundById = async (id: string): Promise<DynamicPlaygroundPa
     const playground = await db.playground.findUnique({
       where: { id },
       select: {
+        id: true,
         title: true,
         description: true,
         templateFile: {
@@ -59,7 +61,6 @@ export const getPlaygroundById = async (id: string): Promise<DynamicPlaygroundPa
     if (playground) {
       await redis.set(cacheKey, playground, { ex: 3600 });
     }
-    // @ts-expect-error: ignore
     return playground;
   } catch (error) {
     console.error('Error in getPlaygroundById:', error);
@@ -83,7 +84,8 @@ export const saveUpdatedCode = async (playgroundId: string, data: TemplateFolder
       },
     });
 
-    await redis.del(getCacheKey(playgroundId));
+    await redis.del(getPlaygroundCacheKey(playgroundId));
+    await redis.del(getVfsTreeCacheKey(playgroundId));
     return { success: true, data: updatedPlayground };
   } catch (error) {
     console.error('Error saving workspace template data:', error);
