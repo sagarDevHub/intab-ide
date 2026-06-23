@@ -28,7 +28,7 @@ const AddNewButton = () => {
     toast.success('Playground created successfully');
 
     setIsModalOpen(false);
-    router.push(`/playground/${res?.id}`);
+    router.push(`/playground/${res?.data?.id}`);
   };
   return (
     <>
