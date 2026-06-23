@@ -5,26 +5,34 @@ import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { SidebarTrigger } from '@/components/ui/sidebar';
-import { ChevronLeft, CloudLightning, Save } from 'lucide-react';
-import { PlaygroundData, TemplateFolder } from '../types';
+import { ChevronLeft, Save, Files } from 'lucide-react';
+import { PlaygroundData, OpenedTab } from '../types';
 
 interface PlaygroundHeaderProps {
   id: string;
   playgroundData: PlaygroundData | null;
-  templateData: TemplateFolder | null;
-  onSave: (data: TemplateFolder) => Promise<void>;
+  openTabs: OpenedTab[];
+  activeTabId: string | null;
+  onSaveActiveFile: () => Promise<void>;
+  onSaveAllFiles: () => Promise<void>;
 }
 
 export const PlaygroundHeader = ({
-  id,
   playgroundData,
-  templateData,
-  onSave,
+  openTabs,
+  activeTabId,
+  onSaveActiveFile,
+  onSaveAllFiles,
 }: PlaygroundHeaderProps) => {
   const router = useRouter();
 
+  // ✅ Computed validation checking states
+  const activeTab = openTabs.find(t => t.id === activeTabId);
+  const isActiveFileDirty = !!activeTab?.hasUnsavedChanges;
+  const isAnyFileDirty = openTabs.some(t => t.hasUnsavedChanges);
+
   return (
-    <header className="flex h-12 shrink-0 items-center justify-between border-b border-neutral-200/60 dark:border-neutral-800/50 px-4 bg-white/80 dark:bg-neutral-950/80 backdrop-blur-md sticky top-0 z-50">
+    <header className="flex h-12 shrink-0 items-center justify-between border-b border-neutral-200/60 dark:border-neutral-800/50 px-4 bg-white/80 dark:bg-neutral-950/80 backdrop-blur-md sticky top-0 z-50 select-none">
       <div className="flex items-center gap-2.5 min-w-0">
         <Button
           variant="ghost"
@@ -40,29 +48,41 @@ export const PlaygroundHeader = ({
         <SidebarTrigger className="h-7 w-7 text-neutral-400 hover:text-neutral-600 dark:hover:text-neutral-200 transition-colors" />
         <Separator orientation="vertical" className="h-3.5 bg-neutral-200 dark:bg-neutral-800/80" />
 
-        <div className="flex items-center gap-2 min-w-0">
-          <span className="text-xs font-semibold tracking-tight text-neutral-800 dark:text-neutral-200 truncate">
-            {playgroundData?.title || 'Sandbox Space'}
-          </span>
-          <span className="hidden sm:inline-flex items-center font-mono text-[10px] px-1.5 py-0.5 rounded bg-neutral-100 dark:bg-neutral-900 text-neutral-400 border border-neutral-200/40 dark:border-neutral-800/50 select-none">
-            id: {id.slice(0, 8)}...
-          </span>
-        </div>
+        <span className="text-xs font-semibold tracking-tight text-neutral-800 dark:text-neutral-200 truncate">
+          {playgroundData?.title || 'Sandbox Space'}
+        </span>
       </div>
 
-      <div className="flex items-center gap-2">
-        <div className="hidden md:flex items-center gap-1.5 text-[11px] font-medium text-emerald-600 dark:text-emerald-400/90 bg-emerald-500/5 px-2 py-0.5 rounded-lg border border-emerald-500/10">
-          <CloudLightning size={11} className="animate-pulse" />
-          <span>VFS Engine Online</span>
-        </div>
-
+      {/* ✅ DUAL SAVE BUTTON CONTEXT MATRICES */}
+      <div className="flex items-center gap-1.5">
+        {/* Action 1: Save Single Active Open Tab File */}
         <Button
           size="sm"
-          onClick={() => templateData && onSave(templateData)}
-          className="h-7 rounded-lg text-xs font-medium bg-neutral-900 hover:bg-neutral-800 text-white dark:bg-neutral-100 dark:hover:bg-neutral-200 dark:text-neutral-950 transition-all gap-1.5 shadow-xs"
+          disabled={!isActiveFileDirty}
+          onClick={onSaveActiveFile}
+          className={`h-7 rounded-lg text-xs font-medium transition-all gap-1.5 px-2.5 border border-transparent shadow-2xs ${
+            isActiveFileDirty
+              ? 'bg-neutral-100 hover:bg-neutral-200 text-neutral-900 dark:bg-neutral-900 dark:hover:bg-neutral-800 dark:text-neutral-100 border-neutral-200 dark:border-neutral-800 cursor-pointer scale-100 active:scale-95'
+              : 'opacity-40 pointer-events-none text-neutral-400 dark:text-neutral-600 bg-neutral-50/50 dark:bg-neutral-950/20'
+          }`}
         >
-          <Save size={13} />
-          <span>Save Changes</span>
+          <Save size={12} />
+          <span>Save</span>
+        </Button>
+
+        {/* Action 2: Save Entire Opened Workspace Suite */}
+        <Button
+          size="sm"
+          disabled={!isAnyFileDirty}
+          onClick={onSaveAllFiles}
+          className={`h-7 rounded-lg text-xs font-medium transition-all gap-1.5 px-2.5 shadow-2xs ${
+            isAnyFileDirty
+              ? 'bg-sky-600 hover:bg-sky-500 dark:bg-sky-500 dark:hover:bg-sky-400 text-white cursor-pointer scale-100 active:scale-95 animate-in zoom-in-95 duration-150'
+              : 'opacity-40 pointer-events-none text-neutral-400 dark:text-neutral-600 bg-neutral-50/50 dark:bg-neutral-950/20'
+          }`}
+        >
+          <Files size={12} />
+          <span>Save All</span>
         </Button>
       </div>
     </header>

@@ -31,4 +31,5 @@ export interface OpenedTab {
   filename: string;
   fileExtension: string;
   content: string;
+  hasUnsavedChanges?: boolean;
 }

@@ -42,14 +42,10 @@ const PlaygroundPage = () => {
       const savedTabsRaw = localStorage.getItem(`playground:tabs:${id}`);
       const savedActiveTabId = localStorage.getItem(`playground:active-tab:${id}`);
 
-      if (savedTabsRaw) {
-        setOpenTabs(JSON.parse(savedTabsRaw));
-      }
-      if (savedActiveTabId) {
-        setActiveTabId(savedActiveTabId);
-      }
+      if (savedTabsRaw) setOpenTabs(JSON.parse(savedTabsRaw));
+      if (savedActiveTabId) setActiveTabId(savedActiveTabId);
     } catch (err) {
-      console.error('Failed to parse local tab persistence pools:', err);
+      console.error(err);
     } finally {
       setIsRehydratingTabs(false);
     }
@@ -90,6 +86,7 @@ const PlaygroundPage = () => {
         filename: file.filename,
         fileExtension: file.fileExtension,
         content: file.content,
+        hasUnsavedChanges: false,
       };
       setOpenTabs(prev => [...prev, newTab]);
     }
@@ -113,9 +110,25 @@ const PlaygroundPage = () => {
     if (!activeTabId || newValue === undefined) return;
 
     setOpenTabs(prev =>
-      prev.map(tab => (tab.id === activeTabId ? { ...tab, content: newValue } : tab))
+      prev.map(tab =>
+        tab.id === activeTabId ? { ...tab, content: newValue, hasUnsavedChanges: true } : tab
+      )
     );
     updateActiveFileContent(activeTabId, newValue);
+  };
+
+  const handleSaveActiveFile = async () => {
+    if (!activeTabId || !templateData) return;
+    await saveTemplateData(templateData);
+    setOpenTabs(prev =>
+      prev.map(tab => (tab.id === activeTabId ? { ...tab, hasUnsavedChanges: false } : tab))
+    );
+  };
+
+  const handleSaveAllFiles = async () => {
+    if (!templateData) return;
+    await saveTemplateData(templateData);
+    setOpenTabs(prev => prev.map(tab => ({ ...tab, hasUnsavedChanges: false })));
   };
 
   const openModalContext = (
@@ -189,8 +202,10 @@ const PlaygroundPage = () => {
           <PlaygroundHeader
             id={id}
             playgroundData={playgroundData}
-            templateData={templateData}
-            onSave={saveTemplateData}
+            openTabs={openTabs}
+            activeTabId={activeTabId}
+            onSaveActiveFile={handleSaveActiveFile}
+            onSaveAllFiles={handleSaveAllFiles}
           />
 
           <main className="flex-1 flex flex-col min-h-0 bg-white dark:bg-[#151515] overflow-hidden">
