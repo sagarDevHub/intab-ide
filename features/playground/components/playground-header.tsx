@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { SidebarTrigger } from '@/components/ui/sidebar';
-import { ChevronLeft, Save, Files } from 'lucide-react';
+import { ChevronLeft, Save, Files, RefreshCw } from 'lucide-react';
 import { PlaygroundData, OpenedTab } from '../types';
 
 interface PlaygroundHeaderProps {
@@ -15,6 +15,8 @@ interface PlaygroundHeaderProps {
   activeTabId: string | null;
   onSaveActiveFile: () => Promise<void>;
   onSaveAllFiles: () => Promise<void>;
+  isAutoSaveEnabled: boolean;
+  onToggleAutoSave: () => void;
 }
 
 export const PlaygroundHeader = ({
@@ -23,10 +25,11 @@ export const PlaygroundHeader = ({
   activeTabId,
   onSaveActiveFile,
   onSaveAllFiles,
+  isAutoSaveEnabled,
+  onToggleAutoSave,
 }: PlaygroundHeaderProps) => {
   const router = useRouter();
 
-  // ✅ Computed validation checking states
   const activeTab = openTabs.find(t => t.id === activeTabId);
   const isActiveFileDirty = !!activeTab?.hasUnsavedChanges;
   const isAnyFileDirty = openTabs.some(t => t.hasUnsavedChanges);
@@ -53,9 +56,22 @@ export const PlaygroundHeader = ({
         </span>
       </div>
 
-      {/* ✅ DUAL SAVE BUTTON CONTEXT MATRICES */}
-      <div className="flex items-center gap-1.5">
-        {/* Action 1: Save Single Active Open Tab File */}
+      <div className="flex items-center gap-2">
+        <Button
+          onClick={onToggleAutoSave}
+          className={`h-7 px-2.5 rounded-lg text-[11px] font-medium flex items-center gap-1.5 border transition-all cursor-pointer ${
+            isAutoSaveEnabled
+              ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20 shadow-xs'
+              : 'bg-neutral-100 dark:bg-neutral-900 text-neutral-400 border-neutral-200 dark:border-neutral-800'
+          }`}
+        >
+          <RefreshCw
+            size={11}
+            className={isAutoSaveEnabled ? 'animate-spin animation-duration-[6s]' : ''}
+          />
+          <span>Auto-Save: {isAutoSaveEnabled ? 'ON' : 'OFF'}</span>
+        </Button>
+
         <Button
           size="sm"
           disabled={!isActiveFileDirty}
@@ -70,7 +86,6 @@ export const PlaygroundHeader = ({
           <span>Save</span>
         </Button>
 
-        {/* Action 2: Save Entire Opened Workspace Suite */}
         <Button
           size="sm"
           disabled={!isAnyFileDirty}

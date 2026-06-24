@@ -10,6 +10,8 @@ import { CodeEditorWorkspace } from '@/features/playground/components/code-edito
 import { FileSystemModal } from '@/features/playground/components/file-system-modal';
 import { TemplateFile, ModalContextState, OpenedTab } from '@/features/playground/types';
 import { Loader2 } from 'lucide-react';
+import { CommandPalette } from '@/features/playground/components/command-palette';
+import { FileSearchPalette } from '@/features/playground/components/file-search-palette';
 
 const PlaygroundPage = () => {
   const { id } = useParams<{ id: string }>();
@@ -28,6 +30,7 @@ const PlaygroundPage = () => {
   const [openTabs, setOpenTabs] = useState<OpenedTab[]>([]);
   const [activeTabId, setActiveTabId] = useState<string | null>(null);
   const [isRehydratingTabs, setIsRehydratingTabs] = useState(true);
+  const [isAutoSaveEnabled, setIsAutoSaveEnabled] = useState(false);
 
   const [modal, setModal] = useState<ModalContextState>({
     isOpen: false,
@@ -159,6 +162,33 @@ const PlaygroundPage = () => {
     }
   };
 
+  const handleToggleAutoSave = async () => {
+    setIsAutoSaveEnabled(prev => {
+      const nextState = !prev;
+      localStorage.setItem(`playground:autosave-config:${id}`, String(nextState));
+      return nextState;
+    });
+  };
+
+  useEffect(() => {
+    if (!isAutoSaveEnabled || !templateData) return;
+
+    const hasUnsavedStuff = openTabs.some(tab => tab.hasUnsavedChanges);
+
+    if (!hasUnsavedStuff) return;
+
+    const autoSaveTimer = setTimeout(async () => {
+      try {
+        await saveTemplateData(templateData);
+        setOpenTabs(prev => prev.map(tab => ({ ...tab, hasUnsavedChanges: false })));
+        console.log(`Background auto save stream execution success.`);
+      } catch (error) {
+        console.error('Background auto-save operation rejected:', error);
+      }
+    }, 2000);
+    return () => clearTimeout(autoSaveTimer);
+  }, [openTabs, templateData, saveTemplateData, isAutoSaveEnabled]);
+
   if (isLoading || isRehydratingTabs) {
     return (
       <div className="fixed inset-0 flex flex-col gap-3.5 items-center justify-center bg-white dark:bg-neutral-950 text-neutral-500 dark:text-neutral-400 z-50 select-none animate-in fade-in duration-200">
@@ -206,6 +236,8 @@ const PlaygroundPage = () => {
             activeTabId={activeTabId}
             onSaveActiveFile={handleSaveActiveFile}
             onSaveAllFiles={handleSaveAllFiles}
+            isAutoSaveEnabled={isAutoSaveEnabled}
+            onToggleAutoSave={handleToggleAutoSave}
           />
 
           <main className="flex-1 flex flex-col min-h-0 bg-white dark:bg-[#151515] overflow-hidden">
@@ -225,6 +257,16 @@ const PlaygroundPage = () => {
         onClose={() => setModal(prev => ({ ...prev, isOpen: false }))}
         onConfirm={handleModalConfirm}
       />
+
+      <CommandPalette
+        openTabs={openTabs}
+        activeTabId={activeTabId}
+        onSelectTab={tabId => setActiveTabId(tabId)}
+        onSaveActiveFile={handleSaveActiveFile}
+        onSaveAllFiles={handleSaveAllFiles}
+      />
+
+      <FileSearchPalette templateData={templateData} onFileSelect={handleFileSelect} />
     </SidebarProvider>
   );
 };
