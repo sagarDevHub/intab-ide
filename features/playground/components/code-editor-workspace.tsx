@@ -44,7 +44,11 @@ export const CodeEditorWorkspace = ({
   onCloseTab,
   onCodeChange,
 }: CodeEditorWorkspaceProps) => {
-  const activeTab = openTabs.find(t => t.id === activeTabId);
+  // Find the active tab using the full path
+  const activeTab = openTabs.find(t => {
+    const path = (t as any).fullPath || t.id;
+    return path === activeTabId;
+  });
 
   if (!activeTab || openTabs.length === 0) {
     return (
@@ -64,15 +68,18 @@ export const CodeEditorWorkspace = ({
 
   return (
     <div className="flex flex-col h-full w-full min-h-0 bg-[#0D1117]">
+      {/* Tab Ribbon Bar Navigation */}
       <div className="h-9 flex items-center border-b border-neutral-800/40 bg-neutral-950/40 overflow-x-auto select-none overflow-y-hidden scrollbar-none shrink-0">
         {openTabs.map(tab => {
-          const isActive = tab.id === activeTabId;
+          // Use the full path as the unique identifier
+          const tabVFSPath = (tab as any).fullPath || tab.id;
+          const isActive = tabVFSPath === activeTabId;
           const isDirty = !!tab.hasUnsavedChanges;
 
           return (
             <div
-              key={tab.id}
-              onClick={() => onSelectTab(tab.id)}
+              key={tabVFSPath} // ✅ UNIQUE KEY using full path
+              onClick={() => onSelectTab(tabVFSPath)}
               className={`flex items-center gap-2.5 px-3 h-full border-r border-neutral-800/40 cursor-pointer relative group transition-all text-xs font-medium ${
                 isActive
                   ? 'bg-[#0D1117] text-neutral-100 font-semibold'
@@ -88,17 +95,14 @@ export const CodeEditorWorkspace = ({
                 {tab.filename}.{tab.fileExtension}
               </span>
 
-              {/* ✅ INTERACTIVE TRACKING UNCURSED SYSTEM DOT CLOSER */}
               <div className="w-4 h-4 flex items-center justify-center relative">
                 {isDirty ? (
                   <>
-                    {/* Unsaved State Circle Dot Indicator Marker */}
                     <div className="h-2 w-2 rounded-full bg-neutral-400 dark:bg-neutral-500 group-hover:hidden transition-all scale-100" />
-                    {/* Hover fall-through trigger close button action */}
                     <button
                       onClick={e => {
                         e.stopPropagation();
-                        onCloseTab(tab.id);
+                        onCloseTab(tabVFSPath);
                       }}
                       className="hidden group-hover:flex p-0.5 rounded-md hover:bg-neutral-800 text-neutral-400 hover:text-neutral-200 transition-all"
                     >
@@ -109,7 +113,7 @@ export const CodeEditorWorkspace = ({
                   <button
                     onClick={e => {
                       e.stopPropagation();
-                      onCloseTab(tab.id);
+                      onCloseTab(tabVFSPath);
                     }}
                     className="opacity-0 group-hover:opacity-100 p-0.5 rounded-md hover:bg-neutral-800 text-neutral-400 hover:text-neutral-200 transition-all"
                   >
@@ -122,6 +126,7 @@ export const CodeEditorWorkspace = ({
         })}
       </div>
 
+      {/* Monaco Code Editor Instance */}
       <div className="flex-1 w-full relative pt-1 bg-[#0D1117]">
         <Editor
           height="100%"
@@ -135,7 +140,7 @@ export const CodeEditorWorkspace = ({
           options={defaultEditorOptions}
           loading={
             <div className="absolute inset-0 flex items-center justify-center bg-[#0D1117] text-xs font-mono text-neutral-500">
-              Loading theme buffers...
+              Loading workspace model...
             </div>
           }
         />

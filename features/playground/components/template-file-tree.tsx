@@ -20,8 +20,8 @@ import { TemplateFile, TemplateFolder } from '../types';
 
 interface TemplateFileTreeProps {
   data: TemplateFolder | null;
-  onFileSelect?: (file: TemplateFile) => void;
-  selectedFile?: TemplateFile | null;
+  onFileSelect?: (file: TemplateFile, fullFilePath: string) => void; // ✅ Updated
+  selectedFile?: (TemplateFile & { fullPath?: string }) | null;
   title?: string;
   onAddFile?: (parentPath: string, name: string, ext: string) => void;
   onAddFolder?: (parentPath: string, name: string) => void;

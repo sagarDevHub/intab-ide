@@ -27,7 +27,7 @@ interface TemplateNodeProps {
   item: TemplateItem;
   level: number;
   currentPath: string;
-  onFileSelect?: (file: TemplateFile) => void;
+  onFileSelect?: (file: TemplateFile, fullFilePath: string) => void; // ✅ Updated
   selectedFile?: TemplateFile | null;
   onAddFile?: (parentPath: string, name: string, ext: string) => void;
   onAddFolder?: (parentPath: string, name: string) => void;
@@ -91,7 +91,7 @@ const TemplateNode = ({
             isSelected &&
               'bg-neutral-100 dark:bg-neutral-800 text-neutral-900 dark:text-neutral-100 font-bold border border-neutral-200 dark:border-neutral-700/50 shadow-xs'
           )}
-          onClick={() => onFileSelect?.(file)}
+          onClick={() => onFileSelect?.(file, itemPath)} // ✅ Pass full path
         >
           <div className="flex items-center min-w-0 gap-2">
             {getFileIcon(file.fileExtension)}
@@ -202,7 +202,6 @@ const TemplateNode = ({
         )}
         <div className="flex flex-col gap-0.5 mt-0.5">
           {folder.items.map((child, idx) => {
-            // ✅ FIX: Determine child item path title string dynamically to prevent property undefined crashes
             const childKey =
               'folderName' in child ? child.folderName : `${child.filename}.${child.fileExtension}`;
 

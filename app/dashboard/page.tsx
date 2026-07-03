@@ -50,7 +50,6 @@ const DashboardMainPage = async () => {
           </div>
         ) : (
           <ProjectTable
-            // @ts-expect-error: ignore
             projects={playgrounds || []}
             onDeleteProject={deleteProjectById}
             onUpdateProject={editProjectById}

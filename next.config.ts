@@ -1,7 +1,6 @@
 import type { NextConfig } from 'next';
 
 const nextConfig: NextConfig = {
-  /* config options here */
   images: {
     remotePatterns: [
       {
@@ -11,6 +10,25 @@ const nextConfig: NextConfig = {
         pathname: '/**',
       },
     ],
+  },
+
+  // ✅ FIX: Using the proper Next.js catch-all wildcard ensures matching works perfectly
+  async headers() {
+    return [
+      {
+        source: '/:path*',
+        headers: [
+          {
+            key: 'Cross-Origin-Opener-Policy',
+            value: 'same-origin',
+          },
+          {
+            key: 'Cross-Origin-Embedder-Policy',
+            value: 'require-corp',
+          },
+        ],
+      },
+    ];
   },
 };
 
