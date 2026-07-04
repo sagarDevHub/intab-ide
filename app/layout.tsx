@@ -2,8 +2,6 @@ import type { Metadata } from 'next';
 import { Geist, Geist_Mono, Noto_Sans, Playfair_Display, JetBrains_Mono } from 'next/font/google';
 import './globals.css';
 import { cn } from '@/lib/utils';
-import { headers } from 'next/headers';
-import { auth } from '@/features/auth/server';
 import { ThemeProvider } from '@/components/providers/theme-provider';
 import { Toaster } from '@/components/ui/sonner';
 
@@ -31,10 +29,6 @@ export default async function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const sessionData = await auth.api.getSession({
-    headers: await headers(),
-  });
-
   return (
     <html
       suppressHydrationWarning

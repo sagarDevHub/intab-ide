@@ -9,16 +9,25 @@ import { PlaygroundHeader } from '@/features/playground/components/playground-he
 import { CodeEditorWorkspace } from '@/features/playground/components/code-editor-workspace';
 import { FileSystemModal } from '@/features/playground/components/file-system-modal';
 import { TemplateFile, ModalContextState, OpenedTab } from '@/features/playground/types';
-import { Loader2, Monitor, RefreshCw, Square } from 'lucide-react';
+import { Loader2, Monitor, RefreshCw, Square, Play } from 'lucide-react';
 import { CommandPalette } from '@/features/playground/components/command-palette';
 import { FileSearchPalette } from '@/features/playground/components/file-search-palette';
 import { TerminalDock, TerminalDockRef } from '@/features/playground/components/terminal-dock';
+import { PlaygroundStatusBar } from '@/features/playground/components/playground-status-bar';
+import { AIPanel } from '@/features/playground/components/ai/ai-panel';
+import { useAI } from '@/hooks/ai/useAI';
 
+export const dynamic = 'force-dynamic';
 const PlaygroundPage = () => {
   const { id } = useParams<{ id: string }>();
   const terminalDockRef = useRef<TerminalDockRef>(null);
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const [iframeKey, setIframeKey] = useState(0);
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
+  const [isServerRunning, setIsServerRunning] = useState(true);
+  const [isAIPanelOpen, setIsAIPanelOpen] = useState(false);
+  const [openTabs, setOpenTabs] = useState<OpenedTab[]>([]);
+  const [activeTabId, setActiveTabId] = useState<string | null>(null);
 
   const handleTerminalStreamWrite = useCallback((text: string) => {
     if (terminalDockRef.current) {
@@ -38,16 +47,21 @@ const PlaygroundPage = () => {
     deleteNodeItem,
     updateActiveFileContent,
     killDevServer,
+    startDevServer,
   } = usePlayground(id, handleTerminalStreamWrite);
 
-  const [openTabs, setOpenTabs] = useState<OpenedTab[]>([]);
-  const [activeTabId, setActiveTabId] = useState<string | null>(null);
+  // Get active file content for AI
+  const activeTab = openTabs.find(t => t.id === activeTabId);
+  const activeFileContent = activeTab?.content || '';
+  const activeFilePath = activeTabId || '';
+
+  // Initialize AI hook
+  const ai = useAI(templateData, activeFileContent, activeFilePath, id || 'anonymous');
+
   const [isRehydratingTabs, setIsRehydratingTabs] = useState(true);
   const [isAutoSaveEnabled, setIsAutoSaveEnabled] = useState(false);
   const [isTerminalOpen, setIsTerminalOpen] = useState(true);
-  const [activeTerminalPanel, setActiveTerminalPanel] = useState<'console' | 'problems' | 'ai'>(
-    'console'
-  );
+  const [activeTerminalPanel, setActiveTerminalPanel] = useState<'console' | 'problems'>('console');
 
   const [modal, setModal] = useState<ModalContextState>({
     isOpen: false,
@@ -59,15 +73,80 @@ const PlaygroundPage = () => {
   // Hard reload of the iframe
   const reloadPreview = useCallback(() => {
     setIframeKey(prev => prev + 1);
-    if (iframeRef.current?.contentWindow) {
-      iframeRef.current.contentWindow.location.reload(true);
-    }
   }, []);
 
   const handleKillServer = useCallback(async () => {
     await killDevServer();
+    setIsServerRunning(false);
     reloadPreview();
   }, [killDevServer, reloadPreview]);
+
+  const handleStartServer = useCallback(async () => {
+    await startDevServer();
+    setIsServerRunning(true);
+    reloadPreview();
+  }, [startDevServer, reloadPreview]);
+
+  const handleToggleSidebar = useCallback(() => {
+    setIsSidebarCollapsed(prev => !prev);
+  }, []);
+
+  // Update server status when previewUrl changes
+  useEffect(() => {
+    setIsServerRunning(!!previewUrl);
+  }, [previewUrl]);
+
+  // AI handlers
+  const handleAIFeatureSelect = (
+    feature: 'chat' | 'suggestion' | 'summary' | 'explain' | 'optimize' | 'bugs'
+  ) => {
+    ai.setActiveFeature(feature);
+    setIsAIPanelOpen(true);
+
+    switch (feature) {
+      case 'chat':
+        break;
+      case 'suggestion':
+        ai.getInlineSuggestion();
+        break;
+      case 'summary':
+        ai.getCodeSummary();
+        break;
+      case 'explain':
+        ai.explainCode();
+        break;
+      case 'optimize':
+        ai.optimizeCode();
+        break;
+      case 'bugs':
+        ai.findBugs();
+        break;
+    }
+  };
+
+  const handleAIToggle = () => {
+    ai.toggleAI();
+    setIsAIPanelOpen(prev => !prev);
+    if (!isAIPanelOpen) {
+      ai.setActiveFeature('chat');
+    }
+  };
+
+  const handleApplySuggestion = (suggestion: string) => {
+    if (activeTabId) {
+      handleCodeChange(suggestion);
+      setIsAIPanelOpen(false);
+      ai.toggleAI();
+    }
+  };
+
+  const handleApplyOptimization = (code: string) => {
+    if (activeTabId) {
+      handleCodeChange(code);
+      setIsAIPanelOpen(false);
+      ai.toggleAI();
+    }
+  };
 
   useEffect(() => {
     if (!id) return;
@@ -115,15 +194,26 @@ const PlaygroundPage = () => {
         e.preventDefault();
         setIsTerminalOpen(prev => !prev);
       }
-      // Ctrl+Shift+S to kill server
       if (e.key === 'S' && (e.metaKey || e.ctrlKey) && e.shiftKey) {
         e.preventDefault();
-        handleKillServer();
+        if (isServerRunning) {
+          handleKillServer();
+        } else {
+          handleStartServer();
+        }
+      }
+      if (e.key === 'B' && (e.metaKey || e.ctrlKey)) {
+        e.preventDefault();
+        handleToggleSidebar();
+      }
+      if (e.key === 'I' && (e.metaKey || e.ctrlKey)) {
+        e.preventDefault();
+        handleAIToggle();
       }
     };
     window.addEventListener('keydown', handleToggleShortcut);
     return () => window.removeEventListener('keydown', handleToggleShortcut);
-  }, [handleKillServer]);
+  }, [handleKillServer, handleStartServer, handleToggleSidebar, isServerRunning, handleAIToggle]);
 
   const handleFileSelect = (file: TemplateFile, fullFilePath?: string) => {
     const rawPath = fullFilePath || `${file.filename}.${file.fileExtension}`;
@@ -270,25 +360,30 @@ const PlaygroundPage = () => {
   return (
     <SidebarProvider>
       <div className="flex h-screen w-full bg-white dark:bg-neutral-950 overflow-hidden text-neutral-900 dark:text-neutral-100">
-        <TemplateFileTree
-          data={templateData}
-          selectedFile={
-            pseudoSelectedFile
-              ? {
-                  filename: pseudoSelectedFile.filename,
-                  fileExtension: pseudoSelectedFile.fileExtension,
-                  content: '',
-                }
-              : null
-          }
-          onFileSelect={handleFileSelect}
-          onAddFile={(path, name, ext) =>
-            openModalContext('createFile', false, path, name && ext ? `${name}.${ext}` : '')
-          }
-          onAddFolder={(path, name) => openModalContext('createFolder', true, path, name)}
-          onRename={(path, isFolder, name) => openModalContext('rename', isFolder, path, name)}
-          onDelete={(path, isFolder) => openModalContext('delete', isFolder, path)}
-        />
+        {/* File Tree - with collapse support */}
+        <div
+          className={`transition-all duration-300 ease-in-out ${isSidebarCollapsed ? 'w-0 overflow-hidden' : 'w-auto'}`}
+        >
+          <TemplateFileTree
+            data={templateData}
+            selectedFile={
+              pseudoSelectedFile
+                ? {
+                    filename: pseudoSelectedFile.filename,
+                    fileExtension: pseudoSelectedFile.fileExtension,
+                    content: '',
+                  }
+                : null
+            }
+            onFileSelect={handleFileSelect}
+            onAddFile={(path, name, ext) =>
+              openModalContext('createFile', false, path, name && ext ? `${name}.${ext}` : '')
+            }
+            onAddFolder={(path, name) => openModalContext('createFolder', true, path, name)}
+            onRename={(path, isFolder, name) => openModalContext('rename', isFolder, path, name)}
+            onDelete={(path, isFolder) => openModalContext('delete', isFolder, path)}
+          />
+        </div>
 
         <SidebarInset className="flex flex-col flex-1 bg-white dark:bg-neutral-950 overflow-hidden min-w-0">
           <PlaygroundHeader
@@ -304,10 +399,20 @@ const PlaygroundPage = () => {
             setIsTerminalOpen={setIsTerminalOpen}
             onReloadPreview={reloadPreview}
             onKillServer={handleKillServer}
+            onStartServer={handleStartServer}
+            isServerRunning={isServerRunning}
+            isSidebarCollapsed={isSidebarCollapsed}
+            onToggleSidebar={handleToggleSidebar}
+            isAIOpen={isAIPanelOpen}
+            isAIProcessing={ai.state.isProcessing}
+            onAIFeatureSelect={handleAIFeatureSelect}
+            onAIToggle={handleAIToggle}
+            aiRateLimitRemaining={ai.state.rateLimit?.remaining}
           />
 
           <main className="flex-1 flex flex-col min-h-0 bg-white dark:bg-[#151515] overflow-hidden">
             <div className="flex-1 flex min-h-0 relative split-pane-row">
+              {/* Editor */}
               <div className="flex-1 min-w-0 h-full relative border-r border-neutral-200 dark:border-neutral-800/70">
                 <CodeEditorWorkspace
                   openTabs={openTabs}
@@ -318,70 +423,110 @@ const PlaygroundPage = () => {
                 />
               </div>
 
-              <div className="w-[420px] lg:w-[480px] shrink-0 h-full bg-neutral-50 dark:bg-neutral-950 flex flex-col select-none">
-                <div className="h-9 border-b border-neutral-200 dark:border-neutral-800/60 bg-neutral-100/60 dark:bg-neutral-900/40 px-3.5 flex items-center justify-between">
-                  <div className="flex items-center gap-2 text-neutral-400 dark:text-neutral-500 text-xs font-semibold">
-                    <Monitor size={13} className="text-neutral-400" />
-                    <span>App Browser Preview</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <button
-                      onClick={reloadPreview}
-                      className="p-1 rounded-md hover:bg-neutral-200 dark:hover:bg-neutral-800 text-neutral-400 hover:text-neutral-600 dark:hover:text-neutral-200 transition-colors"
-                      title="Refresh preview"
-                    >
-                      <RefreshCw size={14} />
-                    </button>
-                    <button
-                      onClick={handleKillServer}
-                      className="p-1 rounded-md hover:bg-red-500/10 text-red-400 hover:text-red-300 transition-colors"
-                      title="Stop dev server"
-                    >
-                      <Square size={14} />
-                    </button>
-                    <div
-                      className={`flex items-center gap-1.5 text-[10px] font-medium px-2 py-0.5 rounded-md ${
-                        previewUrl
-                          ? 'text-emerald-500 bg-emerald-500/10'
-                          : 'text-amber-500 bg-amber-500/10 animate-pulse'
-                      }`}
-                    >
-                      <span
-                        className={`w-1.5 h-1.5 rounded-full ${previewUrl ? 'bg-emerald-500' : 'bg-amber-500'}`}
-                      />
-                      <span>{previewUrl ? 'Live Reload Active' : 'Starting Server...'}</span>
+              {/* Preview + AI Panel */}
+              <div className="w-[420px] lg:w-[480px] shrink-0 h-full flex">
+                {/* Preview (hidden when AI panel is open) */}
+                {!isAIPanelOpen && (
+                  <div className="flex-1 bg-neutral-50 dark:bg-neutral-950 flex flex-col">
+                    <div className="h-9 px-3 flex items-center justify-between border-b border-neutral-200 dark:border-neutral-800/60 bg-neutral-100/60 dark:bg-neutral-900/40">
+                      <div className="flex items-center gap-2 text-neutral-400 dark:text-neutral-500 text-xs font-medium">
+                        <Monitor size={13} />
+                        <span>Preview</span>
+                        <span className="text-neutral-300 dark:text-neutral-600">·</span>
+                        <span className="font-mono truncate max-w-[120px] text-[10px]">
+                          {previewUrl ? new URL(previewUrl).host : 'localhost:3000'}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={reloadPreview}
+                          className="p-1 rounded-md hover:bg-neutral-200 dark:hover:bg-neutral-800 text-neutral-400 hover:text-neutral-600 dark:hover:text-neutral-200 transition-colors"
+                          title="Refresh preview"
+                        >
+                          <RefreshCw size={14} />
+                        </button>
+                        <button
+                          onClick={isServerRunning ? handleKillServer : handleStartServer}
+                          className={`p-1 rounded-md transition-colors ${
+                            isServerRunning
+                              ? 'text-red-400 hover:text-red-300 hover:bg-red-500/10'
+                              : 'text-emerald-400 hover:text-emerald-300 hover:bg-emerald-500/10'
+                          }`}
+                          title={isServerRunning ? 'Stop dev server' : 'Start dev server'}
+                        >
+                          {isServerRunning ? <Square size={14} /> : <Play size={14} />}
+                        </button>
+                        <div
+                          className={`flex items-center gap-1.5 text-[10px] font-medium px-2 py-0.5 rounded-full ${
+                            previewUrl && isServerRunning
+                              ? 'text-emerald-500 bg-emerald-500/10'
+                              : 'text-amber-500 bg-amber-500/10 animate-pulse'
+                          }`}
+                        >
+                          <span
+                            className={`w-1.5 h-1.5 rounded-full ${previewUrl && isServerRunning ? 'bg-emerald-500' : 'bg-amber-500'}`}
+                          />
+                          <span>{previewUrl && isServerRunning ? 'Live' : 'Starting...'}</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="flex-1 bg-white relative">
+                      {previewUrl && isServerRunning ? (
+                        <iframe
+                          ref={iframeRef}
+                          key={iframeKey}
+                          src={`${previewUrl}?t=${Date.now()}`}
+                          className="w-full h-full border-0 absolute inset-0 bg-white"
+                          title="Preview"
+                          sandbox="allow-forms allow-modals allow-pointer-lock allow-popups allow-same-origin allow-scripts"
+                        />
+                      ) : (
+                        <div className="absolute inset-0 flex flex-col items-center justify-center bg-neutral-50/20 dark:bg-neutral-900/10 gap-3">
+                          <div className="text-neutral-400">
+                            <Monitor size={32} className="opacity-40" />
+                          </div>
+                          <span className="text-sm font-medium text-neutral-500">
+                            Server is stopped
+                          </span>
+                          <button
+                            onClick={handleStartServer}
+                            className="px-4 py-1.5 rounded-md bg-sky-600 hover:bg-sky-500 text-white text-xs font-medium transition-all flex items-center gap-2"
+                          >
+                            <Play size={14} />
+                            Start Server
+                          </button>
+                        </div>
+                      )}
                     </div>
                   </div>
-                </div>
+                )}
 
-                <div className="p-2 border-b border-neutral-200 dark:border-neutral-800/40 bg-neutral-50/50 dark:bg-neutral-950/40 flex items-center">
-                  <div className="w-full h-6 rounded-md border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 px-2.5 flex items-center font-mono text-[11px] text-neutral-400 truncate">
-                    <span>{previewUrl || 'http://localhost:3000/'}</span>
-                  </div>
-                </div>
-
-                <div className="flex-1 bg-white relative">
-                  {previewUrl ? (
-                    <iframe
-                      ref={iframeRef}
-                      key={iframeKey}
-                      src={`${previewUrl}?t=${Date.now()}`}
-                      className="w-full h-full border-0 absolute inset-0 bg-white"
-                      title="Sandbox Execution Port Viewport"
-                      sandbox="allow-forms allow-modals allow-pointer-lock allow-popups allow-same-origin allow-scripts"
-                    />
-                  ) : (
-                    <div className="absolute inset-0 flex flex-col items-center justify-center bg-neutral-50/20 dark:bg-neutral-900/10 gap-2">
-                      <Loader2 className="h-4 w-4 animate-spin text-neutral-400" />
-                      <span className="text-[11px] font-medium text-neutral-400 tracking-tight">
-                        Awaiting microcontainer deployment...
-                      </span>
-                    </div>
-                  )}
-                </div>
+                {/* AI Panel */}
+                <AIPanel
+                  isOpen={isAIPanelOpen}
+                  onClose={() => {
+                    setIsAIPanelOpen(false);
+                    ai.toggleAI();
+                  }}
+                  activeFeature={ai.state.activeFeature}
+                  isProcessing={ai.state.isProcessing}
+                  messages={ai.state.messages}
+                  suggestion={ai.state.suggestion}
+                  summary={ai.state.summary}
+                  explanation={ai.state.explanation}
+                  optimizedCode={ai.state.optimizedCode}
+                  bugs={ai.state.bugs}
+                  rateLimit={ai.state.rateLimit}
+                  onSendMessage={ai.sendChatMessage}
+                  onApplySuggestion={handleApplySuggestion}
+                  onApplyOptimization={handleApplyOptimization}
+                  onClear={ai.clearState}
+                />
               </div>
             </div>
 
+            {/* Terminal */}
             <div className="relative shrink-0 z-30">
               <TerminalDock
                 ref={terminalDockRef}
@@ -393,9 +538,19 @@ const PlaygroundPage = () => {
                 setIsOpen={setIsTerminalOpen}
                 setActivePanel={setActiveTerminalPanel}
                 onKillServer={handleKillServer}
+                onStartServer={handleStartServer}
+                isServerRunning={isServerRunning}
               />
             </div>
           </main>
+
+          {/* Status Bar */}
+          <PlaygroundStatusBar
+            isAutoSaveEnabled={isAutoSaveEnabled}
+            port={previewUrl ? new URL(previewUrl).port : '3000'}
+            framework={playgroundData?.framework || 'Next.js'}
+            isServerRunning={isServerRunning}
+          />
         </SidebarInset>
       </div>
 
