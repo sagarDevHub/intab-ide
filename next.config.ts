@@ -18,11 +18,9 @@ const nextConfig = {
     ],
   },
 
-  // ✅ Handle Redis and better-auth packages that use Node.js APIs
+  // ✅ Remove experimental.serverComponentsExternalPackages
+  // ✅ Use only serverExternalPackages
   serverExternalPackages: ['@upstash/redis', '@upstash/ratelimit'],
-  experimental: {
-    serverComponentsExternalPackages: ['@upstash/redis', '@upstash/ratelimit'],
-  },
 
   async headers() {
     return [
