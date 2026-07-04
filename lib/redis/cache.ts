@@ -4,7 +4,6 @@ import { rateLimiter } from './rate-limit';
 
 export class AICache {
   private ttl: number = 3600;
-  // ✅ In-memory cache fallback
   private memoryCache: Map<string, { value: any; expires: number }> = new Map();
   private isRedisAvailable: boolean = !!redis;
 
@@ -29,7 +28,6 @@ export class AICache {
       try {
         const data = await redis.get(key);
         if (data) {
-          // Cache in memory for faster access
           this.memoryCache.set(key, {
             value: data,
             expires: Date.now() + this.ttl * 1000,

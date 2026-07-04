@@ -2,7 +2,7 @@
 import { Ratelimit } from '@upstash/ratelimit';
 import { redis } from './redis';
 
-// In-memory fallback for rate limiting
+// ✅ In-memory fallback for rate limiting
 class MemoryRateLimiter {
   private limits = new Map<string, { count: number; reset: number }>();
 

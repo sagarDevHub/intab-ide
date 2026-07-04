@@ -1,7 +1,6 @@
-// next.config.ts
-import type { NextConfig } from 'next';
-
-const nextConfig: NextConfig = {
+// next.config.js
+/** @type {import('next').NextConfig} */
+const nextConfig = {
   eslint: {
     ignoreDuringBuilds: true,
   },
@@ -19,11 +18,11 @@ const nextConfig: NextConfig = {
     ],
   },
 
-  // ✅ FIX: Add serverExternalPackages to handle Redis
+  // ✅ Handle Redis and better-auth packages that use Node.js APIs
   serverExternalPackages: ['@upstash/redis', '@upstash/ratelimit'],
-
-  // ✅ FIX: Remove any edge runtime config
-  // Make sure there's no runtime: 'edge' in this config
+  experimental: {
+    serverComponentsExternalPackages: ['@upstash/redis', '@upstash/ratelimit'],
+  },
 
   async headers() {
     return [
@@ -44,4 +43,4 @@ const nextConfig: NextConfig = {
   },
 };
 
-export default nextConfig;
+module.exports = nextConfig;
