@@ -1,3 +1,4 @@
+// next.config.ts
 import type { NextConfig } from 'next';
 
 const nextConfig: NextConfig = {
@@ -5,7 +6,7 @@ const nextConfig: NextConfig = {
     ignoreDuringBuilds: true,
   },
   typescript: {
-    ignoreBuildErrors: true, // Add this if it gets stuck on strict type checking
+    ignoreBuildErrors: true,
   },
   images: {
     remotePatterns: [
@@ -18,7 +19,12 @@ const nextConfig: NextConfig = {
     ],
   },
 
-  // ✅ FIX: Using the proper Next.js catch-all wildcard ensures matching works perfectly
+  // ✅ FIX: Add serverExternalPackages to handle Redis
+  serverExternalPackages: ['@upstash/redis', '@upstash/ratelimit'],
+
+  // ✅ FIX: Remove any edge runtime config
+  // Make sure there's no runtime: 'edge' in this config
+
   async headers() {
     return [
       {
