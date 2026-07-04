@@ -1,25 +1,35 @@
 // lib/redis/redis.ts
-import { Redis } from '@upstash/redis';
+// ✅ Completely safe Redis initialization with fallback
 
-// ✅ Only initialize Redis if environment variables are present
-const getRedis = () => {
+let redisInstance: any = null;
+
+// Only run on server side
+if (typeof window === 'undefined') {
   const url = process.env.UPSTASH_REDIS_REST_URL;
   const token = process.env.UPSTASH_REDIS_REST_TOKEN;
 
   if (url && token) {
     try {
-      return new Redis({
-        url: url,
-        token: token,
-      });
+      // Dynamic import to avoid build issues
+      import('@upstash/redis')
+        .then(({ Redis }) => {
+          redisInstance = new Redis({
+            url: url,
+            token: token,
+          });
+          console.log('✅ Redis connected successfully');
+        })
+        .catch(err => {
+          console.warn('⚠️ Failed to load Redis module:', err.message);
+          redisInstance = null;
+        });
     } catch (error) {
-      console.warn('Failed to initialize Redis:', error);
-      return null;
+      console.warn('⚠️ Redis not available:', error);
+      redisInstance = null;
     }
+  } else {
+    console.log('📦 Redis not configured. Using in-memory fallback.');
   }
+}
 
-  console.log('📦 Redis not configured. Using fallback in-memory cache.');
-  return null;
-};
-
-export const redis = getRedis();
+export const redis = redisInstance;

@@ -1,36 +1,41 @@
 // lib/redis/cache.ts
-import { redis } from './redis';
+// ✅ In-memory cache with Redis fallback
+
 import { rateLimiter } from './rate-limit';
 
 export class AICache {
-  private ttl: number = 3600;
-  private memoryCache: Map<string, { value: any; expires: number }> = new Map();
-  private isRedisAvailable: boolean = !!redis;
+  private cache = new Map<string, { value: any; expires: number }>();
+  private redisInstance: any = null;
 
   constructor() {
-    if (!this.isRedisAvailable) {
-      console.log('📦 Using in-memory cache (Redis not available)');
+    // Try to use Redis if available
+    if (typeof window === 'undefined') {
+      const url = process.env.UPSTASH_REDIS_REST_URL;
+      const token = process.env.UPSTASH_REDIS_REST_TOKEN;
+
+      if (url && token) {
+        import('@upstash/redis')
+          .then(({ Redis }) => {
+            this.redisInstance = new Redis({ url, token });
+            console.log('✅ Redis cache connected');
+          })
+          .catch(() => {
+            console.warn('⚠️ Redis cache not available, using memory');
+          });
+      }
     }
   }
 
   async get<T>(key: string): Promise<T | null> {
-    // Try memory cache first
-    const memoryEntry = this.memoryCache.get(key);
-    if (memoryEntry && Date.now() < memoryEntry.expires) {
-      return memoryEntry.value as T;
-    }
-    if (memoryEntry) {
-      this.memoryCache.delete(key);
-    }
-
-    // Try Redis if available
-    if (this.isRedisAvailable && redis) {
+    // Try Redis first
+    if (this.redisInstance) {
       try {
-        const data = await redis.get(key);
+        const data = await this.redisInstance.get(key);
         if (data) {
-          this.memoryCache.set(key, {
+          // Cache in memory for faster access
+          this.cache.set(key, {
             value: data,
-            expires: Date.now() + this.ttl * 1000,
+            expires: Date.now() + 3600000,
           });
           return data as T;
         }
@@ -39,20 +44,27 @@ export class AICache {
       }
     }
 
-    return null;
+    // Fallback to memory
+    const entry = this.cache.get(key);
+    if (!entry) return null;
+    if (Date.now() > entry.expires) {
+      this.cache.delete(key);
+      return null;
+    }
+    return entry.value as T;
   }
 
-  async set(key: string, value: any, ttl: number = this.ttl): Promise<void> {
+  async set(key: string, value: any, ttl: number = 3600): Promise<void> {
     // Store in memory
-    this.memoryCache.set(key, {
+    this.cache.set(key, {
       value,
       expires: Date.now() + ttl * 1000,
     });
 
     // Store in Redis if available
-    if (this.isRedisAvailable && redis) {
+    if (this.redisInstance) {
       try {
-        await redis.set(key, JSON.stringify(value), { ex: ttl });
+        await this.redisInstance.set(key, JSON.stringify(value), { ex: ttl });
       } catch (error) {
         console.warn('Redis set error:', error);
       }
@@ -60,10 +72,10 @@ export class AICache {
   }
 
   async delete(key: string): Promise<void> {
-    this.memoryCache.delete(key);
-    if (this.isRedisAvailable && redis) {
+    this.cache.delete(key);
+    if (this.redisInstance) {
       try {
-        await redis.del(key);
+        await this.redisInstance.del(key);
       } catch (error) {
         console.warn('Redis delete error:', error);
       }
@@ -75,16 +87,6 @@ export class AICache {
     return `ai:${prefix}:${cleaned.join(':')}`;
   }
 
-  async getOrSet<T>(key: string, fetchFn: () => Promise<T>, ttl: number = this.ttl): Promise<T> {
-    const cached = await this.get<T>(key);
-    if (cached !== null) {
-      return cached;
-    }
-    const result = await fetchFn();
-    await this.set(key, result, ttl);
-    return result;
-  }
-
   async checkRateLimit(identifier: string): Promise<{
     success: boolean;
     remaining: number;
@@ -93,17 +95,6 @@ export class AICache {
     const result = await rateLimiter.limit(identifier);
     return {
       success: result.success,
-      remaining: result.remaining,
-      reset: Math.floor(Date.now() / 1000) + (result.reset || 60),
-    };
-  }
-
-  async getRateLimitStatus(identifier: string): Promise<{
-    remaining: number;
-    reset: number;
-  }> {
-    const result = await rateLimiter.limit(identifier);
-    return {
       remaining: result.remaining,
       reset: Math.floor(Date.now() / 1000) + (result.reset || 60),
     };

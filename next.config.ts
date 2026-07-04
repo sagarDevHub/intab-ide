@@ -18,9 +18,9 @@ const nextConfig = {
     ],
   },
 
-  // ✅ Remove experimental.serverComponentsExternalPackages
-  // ✅ Use only serverExternalPackages
-  serverExternalPackages: ['@upstash/redis', '@upstash/ratelimit'],
+  // ✅ Only add if you have Redis credentials
+  // If not, comment these out
+  // serverExternalPackages: ['@upstash/redis', '@upstash/ratelimit'],
 
   async headers() {
     return [
