@@ -1,11 +1,11 @@
-import type { NextConfig } from 'next';
-
-const nextConfig: NextConfig = {
+// next.config.js
+/** @type {import('next').NextConfig} */
+const nextConfig = {
   eslint: {
     ignoreDuringBuilds: true,
   },
   typescript: {
-    ignoreBuildErrors: true, // Add this if it gets stuck on strict type checking
+    ignoreBuildErrors: true,
   },
   images: {
     remotePatterns: [
@@ -18,7 +18,10 @@ const nextConfig: NextConfig = {
     ],
   },
 
-  // ✅ FIX: Using the proper Next.js catch-all wildcard ensures matching works perfectly
+  // ✅ Only add if you have Redis credentials
+  // If not, comment these out
+  // serverExternalPackages: ['@upstash/redis', '@upstash/ratelimit'],
+
   async headers() {
     return [
       {
@@ -38,4 +41,4 @@ const nextConfig: NextConfig = {
   },
 };
 
-export default nextConfig;
+module.exports = nextConfig;
