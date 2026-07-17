@@ -3,9 +3,9 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev --turbopack",
+    "dev": "next dev client",
     "build": "cross-env NEXT_IGNORE_DEV_WARNINGS=1 next build",
-    "start": "next start",
+    "start": "next start client",
     "lint": "next lint"
   },
   "dependencies": {

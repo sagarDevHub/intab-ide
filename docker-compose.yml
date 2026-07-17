@@ -1,0 +1,31 @@
+services:
+  # 1. The Nginx Gatekeeper Proxy
+  intabide-proxy:
+    build:
+      context: ./services/intabide-proxy
+      dockerfile: Dockerfile
+    ports:
+      - '80:80'
+    depends_on:
+      - ai-service
+    networks:
+      - intabide-network
+
+  # 2. The Isolated AI Microservice
+  ai-service:
+    build:
+      context: ./services/intabide-ai-service
+      dockerfile: Dockerfile
+    ports:
+      - '5001:5001'
+    environment:
+      - PORT=5001
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
+      - UPSTASH_REDIS_REST_URL=${UPSTASH_REDIS_REST_URL}
+      - UPSTASH_REDIS_REST_TOKEN=${UPSTASH_REDIS_REST_TOKEN}
+    networks:
+      - intabide-network
+
+networks:
+  intabide-network:
+    driver: bridge

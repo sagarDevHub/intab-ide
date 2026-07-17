@@ -1,8 +1,11 @@
 import type { NextConfig } from 'next';
+import path from 'path';
+
+// Resolve the actual monorepo root folder (INTABIDE/) instead of just the client folder
+const monorepoRoot = path.resolve(__dirname, '..');
 
 const nextConfig: NextConfig = {
   typescript: {
-    // Keep this to allow builds despite strict type warnings
     ignoreBuildErrors: true,
   },
   images: {
@@ -15,6 +18,12 @@ const nextConfig: NextConfig = {
       },
     ],
   },
+  // Pin both execution features to the top-level repository folder
+  turbopack: {
+    root: monorepoRoot,
+  },
+  outputFileTracingRoot: monorepoRoot,
+
   async headers() {
     return [
       {
