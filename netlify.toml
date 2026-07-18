@@ -1,0 +1,11 @@
+[build]
+  # Directs Netlify to step into the client folder first
+  base = "client"
+  
+  # Relative to the base folder above
+  command = "npm run build"
+  publish = ".next"
+
+[build.environment]
+  # Speeds up Next.js build performance by ignoring layout check warnings
+  NEXT_IGNORE_DEV_WARNINGS = "1"
